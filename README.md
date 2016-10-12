@@ -7,7 +7,7 @@ post on [Piazza](https://piazza.com/class/is0phopc27275j).
 
 # Git configuration
 
-git add berkeley https://github.com/berkeley-cs186/course
+git remote add berkeley https://github.com/berkeley-cs186/course
 git pull berkeley master
 
 All course announcements will be on the course website and on Piazza.
