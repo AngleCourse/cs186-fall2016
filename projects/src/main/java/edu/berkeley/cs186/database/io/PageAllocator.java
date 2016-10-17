@@ -21,7 +21,8 @@ import java.io.Closeable;
 /**
  * A PageAllocation system for an OS paging system. Provides memory-mapped paging from the OS, an
  * interface to individual pages with the Page objects, an LRU cache for pages, 16GB worth of paging,
- * and virtual page translation.
+ * and virtual page translation. Did not really implement a fully functional cache which just put 
+ * an uncached page into cache. So the cache size will grow infinitely.
  *
  * YOU SHOULD NOT NEED TO CHANGE ANY OF THE CODE IN THIS PACKAGE.
  */
@@ -31,6 +32,7 @@ public class PageAllocator implements Iterable<Page>, Closeable {
 
   private static AtomicInteger pACounter = new AtomicInteger(0); 
   private static LRUCache<Long, Page> pageLRU = new LRUCache<Long, Page>(cacheSize);
+  //Cache statis
   private static AtomicLong numIOs = new AtomicLong(0); 
   private static AtomicLong cacheMisses = new AtomicLong(0); 
 
@@ -38,7 +40,7 @@ public class PageAllocator implements Iterable<Page>, Closeable {
   private FileChannel fc;
   private int numPages;
   private int allocID;
-  private boolean durable;
+  private boolean durable; //Whether we can flush the in memory page to disk or not
   /**
    * Create a new PageAllocator that writes its bytes into a file named fName. If wipe is true, the
    * data in the page is completely removed.
@@ -58,11 +60,14 @@ public class PageAllocator implements Iterable<Page>, Closeable {
       throw new PageException("Could not open File: " + e.getMessage());
     }
 
+    //Spacial page: page_number is -1
     this.masterPage = new Page(this.fc, 0, -1);
     this.allocID = pACounter.getAndIncrement();
         
     if (wipe) {
       // Nukes masterPage and headerPages
+      // The master page should consist of an array of head page numbers 
+      // of this table file.
       byte[] masterBytes = this.masterPage.readBytes();
       IntBuffer ib = ByteBuffer.wrap(masterBytes).asIntBuffer();
 
@@ -73,6 +78,7 @@ public class PageAllocator implements Iterable<Page>, Closeable {
 
       for (int i = 0; i < numHeaderPages; i++) {
         if (pageCounts[i] > 0) {
+          // Head page is in use 
           getHeadPage(i).wipe();
         }
       }

@@ -26,6 +26,7 @@
               <exclude>**/TestUtils.java</exclude>
               <exclude>**/TestSourceOperator.java</exclude>
             </excludes>
+            <useFile>false</useFile>
             <argLine> -Xms16m -Xmx16m </argLine> <!--ADD TEST JVM ARGS HERE i.e '-Xms8m -Xmx8m' to limit memory to 8m -->
           </configuration>
         </plugin>

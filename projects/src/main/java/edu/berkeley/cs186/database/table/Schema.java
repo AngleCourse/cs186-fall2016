@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Iterator;
 
 /**
  * The Schema of a particular table.
@@ -43,8 +44,20 @@ public class Schema {
    * @throws SchemaException if the values specified don't conform to this Schema
    */
   public Record verify(List<DataType> values) throws SchemaException {
-    //TODO: Implement Me!!
-    return null;
+    if(this.fieldTypes.size() != values.size()){
+        throw new SchemaException("different length");
+    }
+    Iterator<DataType> it_values = values.iterator();
+    Iterator<DataType> it = this.fieldTypes.iterator();
+    while(it.hasNext()){
+        DataType vcopy = it.next();
+        DataType v = it_values.next();
+        if(v.type() != vcopy.type() || v.getSize() != vcopy.getSize()){
+            throw new SchemaException("wrong DataType. Expected " + 
+                    v.toString() + ", got " + vcopy.toString());
+        }
+    }
+    return  new Record(values);
   }
 
   /**
@@ -57,8 +70,18 @@ public class Schema {
    * @return the encoded record as a byte[]
    */
   public byte[] encode(Record record) {
-    //TODO: Implement Me!!
-    return null;
+    int recordSize = 0;
+    for(DataType v: record.getValues()){
+        recordSize += v.getSize();
+    }
+    byte[] data = new byte[recordSize];
+    int index = 0;
+    for(DataType v: record.getValues()){
+        for(byte b: v.getBytes()){
+            data[index++] = b;
+        }
+    }
+    return data;
   }
 
   /**
@@ -69,8 +92,35 @@ public class Schema {
    * @return the decoded Record
    */
   public Record decode(byte[] input) {
-    //TODO: Implement Me!!
-    return null;
+    ArrayList<DataType> values = new ArrayList<DataType>();
+    int index = 0;
+    Iterator<DataType> it = this.fieldTypes.iterator();
+    DataType dt;
+    while(index < input.length){
+        dt = it.next();
+        switch(dt.type()){
+            case BOOL:
+                values.add(new BoolDataType(input[index] != 0));
+                break;
+            case INT:
+                values.add(new IntDataType(
+                            ByteBuffer.wrap(Arrays.copyOfRange(input, index, 
+                                    index+dt.getSize())).getInt()));
+                break;
+            case FLOAT:
+                values.add(new FloatDataType(
+                            ByteBuffer.wrap(Arrays.copyOfRange(input, index,
+                                    index+dt.getSize())).getFloat()));
+                break;
+            case STRING:
+                values.add(new StringDataType(new String(
+                                Arrays.copyOfRange(input, index, 
+                                    index+dt.getSize())), dt.getSize()));
+                break;
+        }
+        index += dt.getSize();
+    }
+    return new Record(values);
   }
 
   public int getEntrySize() {

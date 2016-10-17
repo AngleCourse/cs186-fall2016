@@ -11,6 +11,11 @@ import edu.berkeley.cs186.database.io.Page;
 import edu.berkeley.cs186.database.io.PageException;
 import edu.berkeley.cs186.database.table.stats.TableStats;
 
+/**
+ * IO: Stream based blocking IO
+ * NIO: Buffer based non-blocking IO
+ */
+
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
@@ -158,7 +163,6 @@ public class Table implements Iterable<Record>, Closeable {
    *         correspond to the schema of this table
    */
   public RecordID addRecord(List<DataType> values) throws DatabaseException {
-    //TODO: Implement Me!!
     return null;
   }
 

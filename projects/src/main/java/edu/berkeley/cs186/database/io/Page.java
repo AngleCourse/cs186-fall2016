@@ -1,5 +1,6 @@
 package edu.berkeley.cs186.database.io;
 
+//A direct byte buffer whose content is a memory-mapped region of a file.
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.io.IOException;
