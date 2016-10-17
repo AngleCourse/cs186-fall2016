@@ -163,7 +163,52 @@ public class Table implements Iterable<Record>, Closeable {
    *         correspond to the schema of this table
    */
   public RecordID addRecord(List<DataType> values) throws DatabaseException {
-    return null;
+    Record record = null;
+    try{
+        record = this.schema.verify(values);
+    }catch(SchemaException ex){
+        throw new DatabaseException(ex);
+    }
+    int pageNum = 0;
+    boolean onFreePages = false;
+    // Find a free page
+    // We asume that every page in the freePages always
+    // can hold at least one data entry.
+    if(this.freePages.size() > 0){
+        pageNum = this.freePages.first().intValue();
+        onFreePages = true;
+    }else{
+        pageNum = this.allocator.allocPage();
+    }
+    Page page = this.allocator.fetchPage(pageNum);
+    byte[] pageHeader = this.readPageHeader(page);
+
+    int entryNum = 0;
+    while(entryNum < this.numEntriesPerPage){
+        byte b = pageHeader[entryNum/8];
+        int bitOffset = 7 - (entryNum % 8);
+        byte mask = (byte) (1 << bitOffset);
+        byte value = (byte) (b & mask);
+        if(value == 0){
+            int entrySize = this.schema.getEntrySize();
+            int offset = this.pageHeaderSize + (entrySize*entryNum);
+            page.writeBytes(offset, entrySize, 
+                    this.schema.encode(record));
+            this.writeBitToHeader(page, entryNum, (byte) 1);
+            //Need to write back
+            this.numRecords++;
+            break;
+        }
+        entryNum++;
+    }
+    this.stats.addRecord(record);
+    if(onFreePages && !spaceOnPage(page)){
+        this.freePages.remove(Integer.valueOf(pageNum));
+    }else{
+        this.freePages.add(Integer.valueOf(pageNum));
+    }
+    RecordID rid = new RecordID(pageNum, entryNum);
+    return rid;
   }
 
   /**
@@ -175,8 +220,26 @@ public class Table implements Iterable<Record>, Closeable {
    * @throws DatabaseException if rid does not correspond to a valid record
    */
   public Record deleteRecord(RecordID rid) throws DatabaseException {
-    //TODO: Implement Me!!
-    return null;
+    Record record = null;
+    try{
+        record = this.getRecord(rid);
+    }catch (DatabaseException ex){
+        throw new DatabaseException(ex);
+    }
+    // Get rid of this record.
+    int slotNum = rid.getSlotNumber();
+    int pageNum = rid.getPageNum();
+    Page page = this.allocator.fetchPage(pageNum);
+
+    int entrySize = this.schema.getEntrySize();
+    byte[] zeros = new byte[entrySize];
+    page.writeBytes(this.pageHeaderSize + 
+            (entrySize*slotNum), entrySize, zeros);
+    this.writeBitToHeader(page, slotNum, (byte) 0);
+    this.freePages.add(Integer.valueOf(pageNum));
+    this.stats.removeRecord(record);
+    this.numRecords--;
+    return record;
   }
 
   /**
@@ -187,8 +250,12 @@ public class Table implements Iterable<Record>, Closeable {
    * @throws DatabaseException if rid does not correspond to a valid record
    */
   public Record getRecord(RecordID rid) throws DatabaseException {
-    //TODO: Implement Me!!
-    return null;
+    this.checkRecordIDValidity(rid);
+    Page page = this.allocator.fetchPage(rid.getPageNum());
+    int entrySize = this.schema.getEntrySize();
+    byte[] data = page.readBytes(this.pageHeaderSize + 
+            rid.getSlotNumber()*entrySize, entrySize);
+    return this.schema.decode(data);
   }
 
   /**
@@ -202,8 +269,23 @@ public class Table implements Iterable<Record>, Closeable {
    *         if the values do not correspond to the schema of this table
    */
   public Record updateRecord(List<DataType> values, RecordID rid) throws DatabaseException {
-    //TODO: Implement Me!!
-    return null;
+      this.checkRecordIDValidity(rid);
+      Record record = null;
+      try{
+          record = this.schema.verify(values);
+      }catch(SchemaException ex){
+          throw new DatabaseException(ex);
+      }
+      Page page = this.allocator.fetchPage(rid.getPageNum());
+      int entrySize = this.schema.getEntrySize();
+      int offset = this.pageHeaderSize + rid.getSlotNumber()*entrySize;
+      byte[] data = page.readBytes(offset, entrySize);
+      Record oldRecord = this.schema.decode(data);
+      data = this.schema.encode(record);
+      page.writeBytes(offset, entrySize, data);
+      this.stats.removeRecord(oldRecord);
+      this.stats.addRecord(record);
+      return oldRecord;
   }
 
   public int getNumEntriesPerPage() {
@@ -224,8 +306,22 @@ public class Table implements Iterable<Record>, Closeable {
    * @throws DatabaseException if rid does not reference an existing data page slot
    */
   private boolean checkRecordIDValidity(RecordID rid) throws DatabaseException {
-    //TODO: Implement Me!!
-    return false;
+    Page page = null;
+    try{
+        page = this.allocator.fetchPage(rid.getPageNum());
+    }catch(PageException ex){
+        throw new DatabaseException(ex);
+    }
+    byte[] header = this.readPageHeader(page);
+    int slot = rid.getSlotNumber();
+    int byteOffset = slot / 8;
+    int bitOffset = 7 - (slot % 8);
+    byte mask = (byte)(1 << bitOffset);
+    if(((byte)header[byteOffset] & mask) != 0){
+        return true;
+    }else{
+        throw new DatabaseException("invalid RecordId: " + rid.toString());
+    }
   }
 
   /**
@@ -238,7 +334,8 @@ public class Table implements Iterable<Record>, Closeable {
    * Should set this.pageHeaderSize and this.numEntriesPerPage.
    */
   private void setEntryCounts() {
-    //TODO: Implement Me!!
+      this.pageHeaderSize = Page.pageSize / (8*this.schema.getEntrySize() + 1);
+      this.numEntriesPerPage = this.pageHeaderSize*8;
   }
 
   /**
@@ -409,9 +506,39 @@ public class Table implements Iterable<Record>, Closeable {
    * of the records in this table.
    */
   private class TableIterator implements Iterator<Record> {
-
+    private Page curPage;
+    private int nextSlot;
+    private Iterator<Page> iterator;
     public TableIterator() {
-      //TODO Implement Me!
+        //Setting initial current page and next slot number. After
+        //each iteration, we update this settings. When there is no
+        //more records, sets nextRecordSlot to -1;
+        this.iterator = Table.this.allocator.iterator();
+        this.iterator.next();
+        while(iterator.hasNext()){
+            this.curPage = iterator.next();
+            this.nextSlot = firstValidSlot(this.curPage, 0);
+            if(this.nextSlot >= 0){
+                break;
+            }
+        }
+    }
+    /**
+     * Find the first valid slot on the specified page. If not found,
+     * return -1.
+     */
+    private int firstValidSlot(Page page, int slot){
+        byte[] header = Table.this.readPageHeader(page);
+        while(slot < Table.this.numEntriesPerPage){
+            int byteOffset = slot / 8;
+            int bitOffset = 7 - (slot % 8);
+            byte mask = (byte)(1 << bitOffset);
+            if((header[byteOffset] & mask) != 0){
+                return slot;
+            }
+            slot++;
+        }
+        return -1;
     }
 
     /**
@@ -421,7 +548,7 @@ public class Table implements Iterable<Record>, Closeable {
      */
     public boolean hasNext() {
       //TODO Implement Me!
-      return false;
+      return (this.nextSlot >= 0)? true:false;
     }
 
     /**
@@ -431,8 +558,19 @@ public class Table implements Iterable<Record>, Closeable {
      * @throws NoSuchElementException if there are no more Records to yield
      */
     public Record next() {
-      //TODO Implement Me!
-      return null;
+        if(this.hasNext()){
+            int entrySize = Table.this.schema.getEntrySize();
+            byte[] data = this.curPage.readBytes(Table.this.pageHeaderSize+
+                    entrySize*this.nextSlot, entrySize);
+            //Advance the slot pointer.
+            this.nextSlot = firstValidSlot(this.curPage, this.nextSlot+1);
+            while(this.nextSlot < 0 && this.iterator.hasNext()){
+                this.curPage = this.iterator.next();
+                this.nextSlot = firstValidSlot(this.curPage, 0);
+            }
+            return Table.this.schema.decode(data);
+        }
+        throw new NoSuchElementException();
     }
 
     public void remove() {
