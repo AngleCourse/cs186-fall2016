@@ -13,6 +13,19 @@ import java.util.ArrayList;
  * bitmap, and entries. The type of page header and entry are determined by
  * the subclasses InnerNode and LeafNode.
  *
+ * The node page is organized as:
+ *                      
+ *                  Page Header
+ *    +----------------^------------------+
+ *   /                                     \
+ *  +---------------------------------------+--------+-------------+
+ *  |1|Parent Page                          | BitMap |  Entries ...|
+ *  +---------------------------------------+--------+-------------+
+ *    \
+ *     ->Set only when 
+ *     this node is a
+ *     LeafNode. 
+ *
  * Properties:
  * `keySchema`: the DataType for this index's search key
  * `entrySize`: the physical size (in bytes) of a page entry of this node
@@ -52,6 +65,8 @@ public abstract class BPlusNode {
       this.entrySize = keySchema.getSize() + 4;
     }
 
+    // After leave out 13 Byte for page header, the remaining space
+    // can be used to hold bitmap and entries
     this.bitMapSize = (8 * (Page.pageSize - 13) / (1 + 8 * this.entrySize)) / 8;
     this.numEntries = bitMapSize * 8;
   }
@@ -123,11 +138,11 @@ public abstract class BPlusNode {
     getPage().writeInt(1, val);
   }
   
-  private byte[] getBitMap() {
+  protected byte[] getBitMap() {
     return getPage().readBytes(headerSize, bitMapSize);
   }
 
-  private void setBitMap(byte[] bitMap) {
+  protected void setBitMap(byte[] bitMap) {
     getPage().writeBytes(headerSize, bitMapSize, bitMap);
   }
 
@@ -141,7 +156,7 @@ public abstract class BPlusNode {
    * @param slot the slot number to fill
    * @param ent the entry to write
    */
-  private void writeEntry(int slot, BEntry ent) {
+  protected void writeEntry(int slot, BEntry ent) {
     int byteOffset = slot/8;
     int bitOffset = 7 - (slot % 8);
     byte mask = (byte) (1 << bitOffset);
@@ -159,7 +174,7 @@ public abstract class BPlusNode {
    * @param slot the slot number to read from
    * @return the entry corresponding to the slot
    */
-  private BEntry readEntry(int slot) {
+  protected BEntry readEntry(int slot) {
     if (isLeaf()) {
       return new LeafEntry(this.keySchema, getPage().readBytes(getOffset(slot), entrySize));
     } else {
@@ -258,7 +273,7 @@ public abstract class BPlusNode {
    * @return the LeafNode found
    */
   public LeafNode locateLeaf(DataType key, boolean findFirst) {
-    throw new BPlusTreeException("Not Implemented");
+      throw new BPlusTreeException("Not Implemented");
   }
 
   /**

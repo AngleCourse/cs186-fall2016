@@ -43,8 +43,50 @@ public class LeafNode extends BPlusNode {
    */
   @Override
   public LeafNode locateLeaf(DataType key, boolean findFirst) {
-    //TODO: Implement Me!!
-    return null;
+      LeafNode leaf = this, lastLeaf = null;
+      int slot = findLastKey(key);
+      if(slot == this.numEntries){
+          //keep searching
+           while(leaf.getNextLeaf()>-1){
+               lastLeaf = leaf;
+               leaf = new LeafNode(getTree(), leaf.getNextLeaf());
+               slot = leaf.findLastKey(key);
+               if(slot < 0){
+                   return lastLeaf;
+               }else if(slot >= 0 && slot < this.numEntries){
+                   return leaf;
+               }
+           }
+      }else if(slot < 0){
+          return null;
+      }
+      return this;
+  }
+  /**
+   * Find the last position of the specified key on
+   * this leaf node.
+   */
+  private int findLastKey(DataType key){
+    byte[] bitMap = this.getBitMap();
+    int found = -1;
+    for (int i = 0; i < this.numEntries; i++) {
+      int byteOffset = i/8;
+      int bitOffset = 7 - (i % 8);
+      byte mask = (byte) (1 << bitOffset);
+      
+      byte value = (byte) (bitMap[byteOffset] & mask);
+      
+      if (value != 0) {
+          BEntry entry = readEntry(i);
+          if(entry.getKey().compareTo(key) == 0){
+              found = i;
+          }else if(found > -1){
+              //Found before
+              return found;
+          }
+      }
+    }
+    return found;
   }
 
   /**
@@ -56,8 +98,33 @@ public class LeafNode extends BPlusNode {
    */
   @Override
   public void splitNode() {
-    //TODO: Implement Me!!
-    return;
+      if(!hasSpace()){
+          LeafNode leaf = new LeafNode(getTree());
+          InnerEntry entry = new InnerEntry(
+                  readEntry(this.numEntries/2).getKey(), leaf.getPageNum());
+           
+          //Transfer to new leaf
+          byte[] bitMap = getBitMap();
+          for(int index = this.numEntries/2; index < this.numEntries; index++){
+              int byteOffset = index / 8;
+              int bitOffset = 7 - (index % 8);
+              byte mask = (byte)(1 << bitOffset);
+              bitMap[byteOffset] = (byte)(bitMap[byteOffset] | mask);
+              leaf.writeEntry(index - this.numEntries/2, readEntry(index));
+          }
+          setBitMap(bitMap);
+
+          leaf.setParent(getParent());
+          leaf.setPrevLeaf(getPageNum());
+          leaf.setNextLeaf(getNextLeaf());
+          
+          setNextLeaf(leaf.getPageNum());
+
+          //Find a place to hold entry in the parent node
+          InnerNode parent = new InnerNode(getTree(), getPageNum());
+          parent.insertBEntry(entry);
+          
+      }
   }
   
   public int getPrevLeaf() {

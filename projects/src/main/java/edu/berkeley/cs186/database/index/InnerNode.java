@@ -4,6 +4,8 @@ import edu.berkeley.cs186.database.datatypes.DataType;
 import edu.berkeley.cs186.database.io.Page;
 
 import java.util.List;
+import java.util.Iterator;
+
 
 /**
  * A B+ tree inner node. An inner node header contains the page number of the
@@ -48,8 +50,39 @@ public class InnerNode extends BPlusNode {
    */
   @Override
   public LeafNode locateLeaf(DataType key, boolean findFirst) {
-    //TODO: Implement Me!!
-    return null;
+    //Recursively find until we reach a leaf node.
+    BPlusNode node = null;
+    Iterator<BEntry> iterator = getAllValidEntries().iterator();
+    BEntry entry = null, lastEntry = null;
+    int page_num = 0;
+
+    while(iterator.hasNext()){
+        entry = iterator.next();
+        if(entry.getKey().compareTo(key) > 0){
+            if(lastEntry != null){
+                page_num = lastEntry.getPageNum();
+            }else{
+                page_num = this.getFirstChild();
+            }
+            break;
+        }
+        lastEntry = entry;
+    }
+
+    if(page_num > -1){
+        Page page = getTree().allocator.fetchPage(page_num);
+        if(page.readByte(0) == 0){
+            //Inner Node
+            return (new InnerNode(getTree(), page_num)).locateLeaf(key,
+                    findFirst);
+        }else{
+            //Leaf Node
+            return (new LeafNode(getTree(), page_num)).locateLeaf(key,
+                    findFirst);
+        }
+    }else{
+        return null;
+    }
   }
 
   /**
@@ -61,7 +94,46 @@ public class InnerNode extends BPlusNode {
    */
   @Override
   public void splitNode() {
-    //TODO: Implement me!!
-    return;
+      //Test whether this node is full or not.
+      if(!hasSpace()){
+          //Split the node
+          InnerNode node = new InnerNode(getTree());
+          byte[] bitMap = getBitMap();
+          BEntry popEntry = null;
+          for(int index = this.numEntries/2; index < this.numEntries; index++){
+              int byteOffset = index / 8;
+              int bitOffset = 7 - (index % 8);
+              byte mask = (byte)(1 << bitOffset);
+              bitMap[byteOffset] = (byte)(bitMap[byteOffset] | mask);
+              if(index == this.numEntries/2){
+                  //Pop entry
+                  popEntry = readEntry(index); 
+              }else{
+                  //Transfer it to new node.
+                  node.writeEntry(index - (this.numEntries/2 +1), 
+                          readEntry(index));
+              }
+          }
+          setBitMap(bitMap);
+          BEntry entry = new InnerEntry(popEntry.getKey(),
+                  node.getPageNum());
+          node.setFirstChild(popEntry.getPageNum());
+          if(isRoot()){
+              //Create a new root
+              InnerNode root = new InnerNode(getTree());
+              root.writeEntry(0, entry);
+              root.setParent(-1);
+              root.setFirstChild(getPageNum());
+              node.setParent(root.getPageNum());
+              this.getTree().updateRoot(root.getPageNum());
+          }else{
+              //Just split current node
+              node.setParent(getParent());
+              node.setFirstChild(popEntry.getPageNum());
+              //Find a place for the entry
+              InnerNode parent = new InnerNode(getTree(), getPageNum());
+              parent.insertBEntry(entry);
+          }
+      }
   }
 }

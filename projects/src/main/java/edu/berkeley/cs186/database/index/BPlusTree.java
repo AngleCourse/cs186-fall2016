@@ -52,6 +52,7 @@ public class BPlusTree {
     BPlusNode root = new LeafNode(this);  
     this.rootPageNum = root.getPageNum();
     this.firstLeafPageNum = rootPageNum;
+    //Page 0 is reserved for such usage 
     writeHeader();
   }
 
