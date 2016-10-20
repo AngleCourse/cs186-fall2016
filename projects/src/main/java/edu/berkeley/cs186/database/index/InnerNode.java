@@ -54,7 +54,7 @@ public class InnerNode extends BPlusNode {
     BPlusNode node = null;
     Iterator<BEntry> iterator = getAllValidEntries().iterator();
     BEntry entry = null, lastEntry = null;
-    int page_num = 0;
+    int page_num = -1;
 
     while(iterator.hasNext()){
         entry = iterator.next();
@@ -70,16 +70,8 @@ public class InnerNode extends BPlusNode {
     }
 
     if(page_num > -1){
-        Page page = getTree().allocator.fetchPage(page_num);
-        if(page.readByte(0) == 0){
-            //Inner Node
-            return (new InnerNode(getTree(), page_num)).locateLeaf(key,
+        return BPlusNode.getBPlusNode(getTree(), page_num).locateLeaf(key,
                     findFirst);
-        }else{
-            //Leaf Node
-            return (new LeafNode(getTree(), page_num)).locateLeaf(key,
-                    findFirst);
-        }
     }else{
         return null;
     }
@@ -131,7 +123,7 @@ public class InnerNode extends BPlusNode {
               node.setParent(getParent());
               node.setFirstChild(popEntry.getPageNum());
               //Find a place for the entry
-              InnerNode parent = new InnerNode(getTree(), getPageNum());
+              BPlusNode parent = BPlusNode.getBPlusNode(getTree(), getParent());
               parent.insertBEntry(entry);
           }
       }

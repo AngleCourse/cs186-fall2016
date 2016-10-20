@@ -8,6 +8,7 @@ import edu.berkeley.cs186.database.datatypes.*;
 
 import java.util.NoSuchElementException;
 import java.util.Iterator;
+import java.util.List;
 import java.nio.file.Paths;
 
 /**
@@ -52,7 +53,7 @@ public class BPlusTree {
     BPlusNode root = new LeafNode(this);  
     this.rootPageNum = root.getPageNum();
     this.firstLeafPageNum = rootPageNum;
-    //Page 0 is reserved for such usage 
+    //The first page stores information about this index file.
     writeHeader();
   }
 
@@ -227,7 +228,22 @@ public class BPlusTree {
    */
   
     public BPlusIterator(LeafNode leaf) {
-      //TODO: Implement Me!
+        this.isScan = true;
+        currLeafIter = leaf.scan();
+        if(currLeafIter.hasNext()){
+            currLeaf = leaf;
+        }else{
+            while(leaf.getNextLeaf() > -1){
+                leaf = (LeafNode) BPlusNode.getBPlusNode(BPlusTree.this, leaf.getPageNum());
+                currLeafIter = leaf.scan();
+                if(currLeafIter.hasNext()){
+                    currLeaf = leaf;
+                    return;
+                }
+            }
+            //Nerver found
+            currLeafIter = null;
+        }
     }
    
   /**
@@ -240,12 +256,35 @@ public class BPlusTree {
    */
 
     public BPlusIterator(LeafNode leaf, DataType key, boolean scan) {
-      //TODO: Implement Me!
+        this.isScan = scan;
+        this.lookupKey = key;
+        if(isScan){
+            currLeafIter = leaf.scanFrom(this.lookupKey);
+        }else{
+            currLeafIter = leaf.scanForKey(this.lookupKey);
+        }
+        if(currLeafIter.hasNext()){
+            currLeaf = leaf;
+        }else{
+            while(leaf.getNextLeaf() > -1){
+                leaf = (LeafNode)BPlusNode.getBPlusNode(BPlusTree.this, leaf.getPageNum());
+                if(isScan){
+                    currLeafIter = leaf.scan();
+                }else{
+                    currLeafIter = leaf.scanForKey(this.lookupKey);
+                }
+                if(currLeafIter.hasNext()){
+                    currLeaf = leaf;
+                    return;
+                }
+            }
+            //Nerver found
+            currLeafIter = null;
+        }
     }
 
     public boolean hasNext() {
-      //TODO: Implement Me!
-      return false;
+        return (currLeafIter != null)?currLeafIter.hasNext():false;
     }
     
     /**
@@ -255,8 +294,30 @@ public class BPlusTree {
      * @throws NoSuchElementException if there are no more Records to yield
      */
     public RecordID next() {
-      //TODO: Implement Me!
-      return null;
+      if(hasNext()){
+          RecordID record = currLeafIter.next();
+          if(!currLeafIter.hasNext()){
+              currLeafIter = null;
+              while(currLeaf.getNextLeaf() > -1){
+                  currLeaf = (LeafNode) BPlusNode.getBPlusNode(BPlusTree.this, currLeaf.getNextLeaf());
+                  List<BEntry> entries = currLeaf.getAllValidEntries();
+                  if(entries.size() > 0){
+                      if(!this.isScan){
+                          if(entries.get(0).getKey().compareTo(this.lookupKey) == 0){
+                              currLeafIter = currLeaf.scanForKey(this.lookupKey);
+                          }
+                      }else{
+                          currLeafIter = currLeaf.scan();
+                      }
+                      break;
+                  }
+                  //Bypass empty leaf nodes
+              }
+              // No more records
+          }
+          return record;
+      }
+      throw new NoSuchElementException();
     }
 
     public void remove() {

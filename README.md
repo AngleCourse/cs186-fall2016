@@ -7,12 +7,12 @@ post on [Piazza](https://piazza.com/class/is0phopc27275j).
 
 # Git configuration
 
-git remote add berkeley https://github.com/berkeley-cs186/course
-git pull berkeley master
+    git remote add berkeley https://github.com/berkeley-cs186/course
+    git pull berkeley master
 
 # Debug
 
-mvn test -Dtest=TestTable -Dmaven.surefire.debug test
-jdb -attach 5005 --sourcepath ./src/main/java:./src/test/java
+    mvn test -Dtest=TestTable -Dmaven.surefire.debug test
+    jdb -attach 5005 --sourcepath ./src/main/java:./src/test/java
 
 All course announcements will be on the course website and on Piazza.

@@ -45,22 +45,23 @@ public class LeafNode extends BPlusNode {
   public LeafNode locateLeaf(DataType key, boolean findFirst) {
       LeafNode leaf = this, lastLeaf = null;
       int slot = findLastKey(key);
-      if(slot == this.numEntries){
-          //keep searching
-           while(leaf.getNextLeaf()>-1){
-               lastLeaf = leaf;
-               leaf = new LeafNode(getTree(), leaf.getNextLeaf());
-               slot = leaf.findLastKey(key);
-               if(slot < 0){
-                   return lastLeaf;
-               }else if(slot >= 0 && slot < this.numEntries){
-                   return leaf;
-               }
-           }
-      }else if(slot < 0){
-          return null;
+      if(!findFirst){
+        if(slot == this.numEntries-1){
+            //keep searching
+             while(leaf.getNextLeaf()>-1){
+                 lastLeaf = leaf;
+                 leaf = new LeafNode(getTree(), leaf.getNextLeaf());
+                 slot = leaf.findLastKey(key);
+                 if(slot < 0){
+                     return lastLeaf;
+                 }else if(slot >= 0 && slot < this.numEntries){
+                     return leaf;
+                 }
+             }
+        }
       }
-      return this;
+      //Nerver found or found only on this leaf
+      return leaf;
   }
   /**
    * Find the last position of the specified key on
@@ -121,8 +122,17 @@ public class LeafNode extends BPlusNode {
           setNextLeaf(leaf.getPageNum());
 
           //Find a place to hold entry in the parent node
-          InnerNode parent = new InnerNode(getTree(), getPageNum());
-          parent.insertBEntry(entry);
+          if(getParent() > -1){
+              BPlusNode parent = BPlusNode.getBPlusNode(getTree(), getParent());
+              parent.insertBEntry(entry);
+          }else{
+              //root node
+              InnerNode parent = new InnerNode(getTree());
+              parent.setParent(-1);
+              parent.setFirstChild(getPageNum());
+              getTree().updateRoot(parent.getPageNum());
+              parent.insertBEntry(entry);
+          }
           
       }
   }
