@@ -219,6 +219,7 @@ public class TestBPlusTree {
     for (int i = 0; i < 8*intLeafPageSize; i++) {
       bp.insertKey(new IntDataType(i % 4), new RecordID(i % 4, i));
     }
+    //bp.dumpLeaves();
     Iterator<RecordID> rids = bp.lookupKey(new IntDataType(0));
     assertTrue(rids.hasNext());
 

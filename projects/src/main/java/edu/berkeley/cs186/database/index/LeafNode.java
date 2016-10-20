@@ -50,7 +50,7 @@ public class LeafNode extends BPlusNode {
             //keep searching
              while(leaf.getNextLeaf()>-1){
                  lastLeaf = leaf;
-                 leaf = new LeafNode(getTree(), leaf.getNextLeaf());
+                 leaf = (LeafNode) BPlusNode.getBPlusNode(getTree(), leaf.getNextLeaf());
                  slot = leaf.findLastKey(key);
                  if(slot < 0){
                      return lastLeaf;
@@ -60,6 +60,17 @@ public class LeafNode extends BPlusNode {
              }
         }
       }
+      System.out.println("***********************");
+      int index = 0;
+      lastLeaf = leaf;
+      while(lastLeaf.getNextLeaf() > -1){
+          index++;
+          lastLeaf= (LeafNode)BPlusNode.getBPlusNode(
+                      BPlusTree.this, lastLeaf.getNextLeaf());
+      }
+      System.out.println("Currently we are " + index +
+          " away from the end");
+
       //Nerver found or found only on this leaf
       return leaf;
   }
@@ -101,21 +112,21 @@ public class LeafNode extends BPlusNode {
   public void splitNode() {
       if(!hasSpace()){
           LeafNode leaf = new LeafNode(getTree());
-          InnerEntry entry = new InnerEntry(
-                  readEntry(this.numEntries/2).getKey(), leaf.getPageNum());
-           
-          //Transfer to new leaf
-          byte[] bitMap = getBitMap();
-          for(int index = this.numEntries/2; index < this.numEntries; index++){
-              int byteOffset = index / 8;
-              int bitOffset = 7 - (index % 8);
-              byte mask = (byte)(1 << bitOffset);
-              bitMap[byteOffset] = (byte)(bitMap[byteOffset] | mask);
-              leaf.writeEntry(index - this.numEntries/2, readEntry(index));
+          Iterator<BEntry> iterator = getAllValidEntries().iterator();
+          ArrayList<BEntry> entries = new ArrayList<BEntry>();
+          ArrayList<BEntry> new_entries = new ArrayList<BEntry>();
+          for(int index = 0; index < this.numEntries; index++){
+              if(index < this.numEntries/2){
+                  //Put it in the original node
+                  entries.add(iterator.next());
+              }else{
+                  new_entries.add(iterator.next());
+              }
           }
-          setBitMap(bitMap);
+          overwriteBNodeEntries(entries);
+          leaf.overwriteBNodeEntries(new_entries);
+          InnerEntry entry = new InnerEntry(new_entries.get(0).getKey(), leaf.getPageNum());
 
-          leaf.setParent(getParent());
           leaf.setPrevLeaf(getPageNum());
           leaf.setNextLeaf(getNextLeaf());
           
@@ -125,6 +136,7 @@ public class LeafNode extends BPlusNode {
           if(getParent() > -1){
               BPlusNode parent = BPlusNode.getBPlusNode(getTree(), getParent());
               parent.insertBEntry(entry);
+              leaf.setParent(getParent());
           }else{
               //root node
               InnerNode parent = new InnerNode(getTree());
@@ -132,6 +144,9 @@ public class LeafNode extends BPlusNode {
               parent.setFirstChild(getPageNum());
               getTree().updateRoot(parent.getPageNum());
               parent.insertBEntry(entry);
+
+              setParent(parent.getPageNum());
+              leaf.setParent(parent.getPageNum());
           }
           
       }

@@ -5,6 +5,7 @@ import edu.berkeley.cs186.database.io.Page;
 
 import java.util.List;
 import java.util.Iterator;
+import java.util.ArrayList;
 
 
 /**
@@ -73,7 +74,7 @@ public class InnerNode extends BPlusNode {
         return BPlusNode.getBPlusNode(getTree(), page_num).locateLeaf(key,
                     findFirst);
     }else{
-        return null;
+        return BPlusNode.getBPlusNode(getTree(), entry.getPageNum()).locateLeaf(key, findFirst); 
     }
   }
 
@@ -90,30 +91,30 @@ public class InnerNode extends BPlusNode {
       if(!hasSpace()){
           //Split the node
           InnerNode node = new InnerNode(getTree());
-          byte[] bitMap = getBitMap();
-          BEntry popEntry = null;
-          for(int index = this.numEntries/2; index < this.numEntries; index++){
-              int byteOffset = index / 8;
-              int bitOffset = 7 - (index % 8);
-              byte mask = (byte)(1 << bitOffset);
-              bitMap[byteOffset] = (byte)(bitMap[byteOffset] | mask);
-              if(index == this.numEntries/2){
-                  //Pop entry
-                  popEntry = readEntry(index); 
+          Iterator<BEntry> iterator = getAllValidEntries().iterator();
+          ArrayList<BEntry> entries = new ArrayList<BEntry>();
+          ArrayList<BEntry> new_entries = new ArrayList<BEntry>();
+          BEntry entry = null;
+          for(int index = 0; index < this.numEntries; index++){
+              if(index < this.numEntries/2){
+                  entries.add(iterator.next());
+              }else if(index == this.numEntries/2){
+                  entry = iterator.next();
               }else{
-                  //Transfer it to new node.
-                  node.writeEntry(index - (this.numEntries/2 +1), 
-                          readEntry(index));
+                  new_entries.add(iterator.next());
               }
           }
-          setBitMap(bitMap);
-          BEntry entry = new InnerEntry(popEntry.getKey(),
-                  node.getPageNum());
-          node.setFirstChild(popEntry.getPageNum());
+          overwriteBNodeEntries(entries);
+          node.overwriteBNodeEntries(new_entries);
+          node.setFirstChild(entry.getPageNum());
+          entry = new InnerEntry(entry.getKey(), node.getPageNum());
+
           if(isRoot()){
               //Create a new root
               InnerNode root = new InnerNode(getTree());
-              root.writeEntry(0, entry);
+              entries = new ArrayList<BEntry>();
+              entries.add(entry);
+              root.overwriteBNodeEntries(entries);
               root.setParent(-1);
               root.setFirstChild(getPageNum());
               node.setParent(root.getPageNum());
@@ -121,7 +122,6 @@ public class InnerNode extends BPlusNode {
           }else{
               //Just split current node
               node.setParent(getParent());
-              node.setFirstChild(popEntry.getPageNum());
               //Find a place for the entry
               BPlusNode parent = BPlusNode.getBPlusNode(getTree(), getParent());
               parent.insertBEntry(entry);

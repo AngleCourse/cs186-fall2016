@@ -209,7 +209,33 @@ public class BPlusTree {
       break;
     }
   }
-  
+  /**
+   * Dumps all of tree leaves.
+   */
+  public void dumpLeaves(){
+        LeafNode leaf = (LeafNode)BPlusNode.getBPlusNode(
+                this, this.firstLeafPageNum);
+        int index = 0;
+        System.out.print("First node: ");
+        for(BEntry entry: leaf.getAllValidEntries()){
+            System.out.print("["+index+"]" + entry.toString()+", ");
+            index++;
+        }
+        System.out.println();
+        int node_num = 2;
+        while(leaf.getNextLeaf() > -1){
+            System.out.print(node_num + "th node: ");
+            leaf = (LeafNode)BPlusNode.getBPlusNode(
+                    this, leaf.getNextLeaf());
+            for(BEntry entry: leaf.getAllValidEntries()){
+                System.out.print("[" + index + "]" + 
+                        entry.toString()+", ");
+                index++;
+            }
+            System.out.println();
+            node_num++;
+        }
+    }
   /**
    * An implementation of Iterator that provides an iterator interface over RecordIDs
    * in this index.
@@ -234,7 +260,8 @@ public class BPlusTree {
             currLeaf = leaf;
         }else{
             while(leaf.getNextLeaf() > -1){
-                leaf = (LeafNode) BPlusNode.getBPlusNode(BPlusTree.this, leaf.getPageNum());
+                leaf = (LeafNode) BPlusNode.getBPlusNode(BPlusTree.this, 
+                        leaf.getNextLeaf());
                 currLeafIter = leaf.scan();
                 if(currLeafIter.hasNext()){
                     currLeaf = leaf;
@@ -245,6 +272,7 @@ public class BPlusTree {
             currLeafIter = null;
         }
     }
+    
    
   /**
    * This constructor creates an Iterator that scans starting from some LeafNode and some starting value.
@@ -266,12 +294,17 @@ public class BPlusTree {
         if(currLeafIter.hasNext()){
             currLeaf = leaf;
         }else{
+            System.out.println("Do not have key(" + key + ") on this leaf");
+            int index = 0;
             while(leaf.getNextLeaf() > -1){
-                leaf = (LeafNode)BPlusNode.getBPlusNode(BPlusTree.this, leaf.getPageNum());
+                index++;
+                leaf = (LeafNode)BPlusNode.getBPlusNode(BPlusTree.this, leaf.getNextLeaf());
                 if(isScan){
-                    currLeafIter = leaf.scan();
+                    currLeafIter = leaf.scanFrom(this.lookupKey);
                 }else{
                     currLeafIter = leaf.scanForKey(this.lookupKey);
+                    System.out.println("After tries " + index + 
+                            " more leaves,  we have it");
                 }
                 if(currLeafIter.hasNext()){
                     currLeaf = leaf;
@@ -297,23 +330,58 @@ public class BPlusTree {
       if(hasNext()){
           RecordID record = currLeafIter.next();
           if(!currLeafIter.hasNext()){
+              System.out.println("Current record: " + record.toString() + 
+                      ". Start trying next leaf");
               currLeafIter = null;
+              int count = 0;
               while(currLeaf.getNextLeaf() > -1){
-                  currLeaf = (LeafNode) BPlusNode.getBPlusNode(BPlusTree.this, currLeaf.getNextLeaf());
+                  count++;
+                  currLeaf = (LeafNode) BPlusNode.getBPlusNode(BPlusTree.this, 
+                          currLeaf.getNextLeaf());
                   List<BEntry> entries = currLeaf.getAllValidEntries();
                   if(entries.size() > 0){
                       if(!this.isScan){
                           if(entries.get(0).getKey().compareTo(this.lookupKey) == 0){
                               currLeafIter = currLeaf.scanForKey(this.lookupKey);
+                              System.out.println("After tries " + count + 
+                                      " more leaves, we have it");
+                          }else{
+                              System.out.println("After tries " + count + 
+                                  " more leaves, we never met the key " + this.lookupKey);
+                              System.out.print("Searching entries: ");
+                              int index = 0;
+                              for(BEntry entry: entries){
+                                  System.out.print("[" + index + "]" + entry.toString()
+                                          + " ");
+                                  index++;
+                              }
+                              System.out.println();
+
+                              index = 0;
+                              while(currLeaf.getNextLeaf() > -1){
+                                  index++;
+                                  currLeaf = (LeafNode)BPlusNode.getBPlusNode(
+                                              BPlusTree.this, currLeaf.getNextLeaf());
+                              }
+                              System.out.println("Currently we are " + index +
+                                  " away from the end");
+
+                              System.out.println("Now, dump all of leaves: ");
+                              BPlusTree.this.dumpLeaves();
                           }
                       }else{
                           currLeafIter = currLeaf.scan();
+                          System.out.println("After tries " + count + 
+                                  " more leaves, we found a non-empty leaf to scan");
                       }
                       break;
                   }
                   //Bypass empty leaf nodes
               }
               // No more records
+              if(currLeafIter == null){
+                  System.out.println("We already on the last leaf");
+              }
           }
           return record;
       }
