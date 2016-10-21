@@ -44,8 +44,21 @@ public class LeafNode extends BPlusNode {
   @Override
   public LeafNode locateLeaf(DataType key, boolean findFirst) {
       LeafNode leaf = this, lastLeaf = null;
+
+      //System.out.println("Start searching...");
+      int index = 0;
+      lastLeaf = leaf;
+      while(lastLeaf.getNextLeaf() > -1){
+          index++;
+          lastLeaf = (LeafNode)BPlusNode.getBPlusNode(
+                      getTree(), lastLeaf.getNextLeaf());
+      }
+      //System.out.println("Currently we are " + index +
+      //    " away from the end, FindFirst is: " + Boolean.toString(findFirst));
+
       int slot = findLastKey(key);
       if(!findFirst){
+        //System.out.println("Starting scan for last key: " + key.toString());
         if(slot == this.numEntries-1){
             //keep searching
              while(leaf.getNextLeaf()>-1){
@@ -60,16 +73,17 @@ public class LeafNode extends BPlusNode {
              }
         }
       }
-      System.out.println("***********************");
-      int index = 0;
+
+      //System.out.println("After searching");
+      index = 0;
       lastLeaf = leaf;
       while(lastLeaf.getNextLeaf() > -1){
           index++;
-          lastLeaf= (LeafNode)BPlusNode.getBPlusNode(
-                      BPlusTree.this, lastLeaf.getNextLeaf());
+          lastLeaf = (LeafNode)BPlusNode.getBPlusNode(
+                      getTree(), lastLeaf.getNextLeaf());
       }
-      System.out.println("Currently we are " + index +
-          " away from the end");
+      //System.out.println("Currently we are " + index +
+      //    " away from the end");
 
       //Nerver found or found only on this leaf
       return leaf;

@@ -59,7 +59,8 @@ public class InnerNode extends BPlusNode {
 
     while(iterator.hasNext()){
         entry = iterator.next();
-        if(entry.getKey().compareTo(key) > 0){
+        if((entry.getKey().compareTo(key) > 0) || 
+               (findFirst && entry.getKey().compareTo(key) == 0)){
             if(lastEntry != null){
                 page_num = lastEntry.getPageNum();
             }else{

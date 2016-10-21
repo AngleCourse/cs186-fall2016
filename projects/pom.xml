@@ -38,7 +38,7 @@
               <exclude>**/TestSourceOperator.java</exclude>
             </excludes>
             <useFile>false</useFile>
-            <argLine>-Xms256m -Xmx256m </argLine> <!--ADD TEST JVM ARGS HERE i.e '-Xms8m -Xmx8m' to limit memory to 8m -->
+            <argLine>-Xms512m -Xmx512m </argLine> <!--ADD TEST JVM ARGS HERE i.e '-Xms8m -Xmx8m' to limit memory to 8m -->
           </configuration>
         </plugin>
     </plugins>

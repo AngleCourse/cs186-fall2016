@@ -294,7 +294,7 @@ public class BPlusTree {
         if(currLeafIter.hasNext()){
             currLeaf = leaf;
         }else{
-            System.out.println("Do not have key(" + key + ") on this leaf");
+            //System.out.println("Do not have key(" + key + ") on this leaf");
             int index = 0;
             while(leaf.getNextLeaf() > -1){
                 index++;
@@ -303,8 +303,8 @@ public class BPlusTree {
                     currLeafIter = leaf.scanFrom(this.lookupKey);
                 }else{
                     currLeafIter = leaf.scanForKey(this.lookupKey);
-                    System.out.println("After tries " + index + 
-                            " more leaves,  we have it");
+                    //System.out.println("After tries " + index + 
+                    //        " more leaves,  we have it");
                 }
                 if(currLeafIter.hasNext()){
                     currLeaf = leaf;
@@ -330,8 +330,8 @@ public class BPlusTree {
       if(hasNext()){
           RecordID record = currLeafIter.next();
           if(!currLeafIter.hasNext()){
-              System.out.println("Current record: " + record.toString() + 
-                      ". Start trying next leaf");
+              //System.out.println("Current record: " + record.toString() + 
+              //        ". Start trying next leaf");
               currLeafIter = null;
               int count = 0;
               while(currLeaf.getNextLeaf() > -1){
@@ -343,19 +343,19 @@ public class BPlusTree {
                       if(!this.isScan){
                           if(entries.get(0).getKey().compareTo(this.lookupKey) == 0){
                               currLeafIter = currLeaf.scanForKey(this.lookupKey);
-                              System.out.println("After tries " + count + 
-                                      " more leaves, we have it");
+                              //System.out.println("After tries " + count + 
+                              //        " more leaves, we have it");
                           }else{
-                              System.out.println("After tries " + count + 
-                                  " more leaves, we never met the key " + this.lookupKey);
-                              System.out.print("Searching entries: ");
+                              //System.out.println("After tries " + count + 
+                              //    " more leaves, we never met the key " + this.lookupKey);
+                              //System.out.print("Searching entries: ");
                               int index = 0;
                               for(BEntry entry: entries){
-                                  System.out.print("[" + index + "]" + entry.toString()
-                                          + " ");
+                              //    System.out.print("[" + index + "]" + entry.toString()
+                              //            + " ");
                                   index++;
                               }
-                              System.out.println();
+                              //System.out.println();
 
                               index = 0;
                               while(currLeaf.getNextLeaf() > -1){
@@ -363,16 +363,16 @@ public class BPlusTree {
                                   currLeaf = (LeafNode)BPlusNode.getBPlusNode(
                                               BPlusTree.this, currLeaf.getNextLeaf());
                               }
-                              System.out.println("Currently we are " + index +
-                                  " away from the end");
+                             // System.out.println("Currently we are " + index +
+                             //     " away from the end");
 
-                              System.out.println("Now, dump all of leaves: ");
-                              BPlusTree.this.dumpLeaves();
+                              //System.out.println("Now, dump all of leaves: ");
+                              //BPlusTree.this.dumpLeaves();
                           }
                       }else{
                           currLeafIter = currLeaf.scan();
-                          System.out.println("After tries " + count + 
-                                  " more leaves, we found a non-empty leaf to scan");
+                          //System.out.println("After tries " + count + 
+                          //        " more leaves, we found a non-empty leaf to scan");
                       }
                       break;
                   }
@@ -380,7 +380,7 @@ public class BPlusTree {
               }
               // No more records
               if(currLeafIter == null){
-                  System.out.println("We already on the last leaf");
+                  //System.out.println("We already on the last leaf");
               }
           }
           return record;
