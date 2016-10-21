@@ -51,32 +51,26 @@ public class InnerNode extends BPlusNode {
    */
   @Override
   public LeafNode locateLeaf(DataType key, boolean findFirst) {
-    //Recursively find until we reach a leaf node.
-    BPlusNode node = null;
-    Iterator<BEntry> iterator = getAllValidEntries().iterator();
-    BEntry entry = null, lastEntry = null;
-    int page_num = -1;
 
+    Iterator<BEntry> iterator = getAllValidEntries().iterator();
+    BEntry entry = iterator.next();
+    if((findFirst && entry.getKey().compareTo(key) == 0) ||
+            (entry.getKey().compareTo(key) > 0)){
+        return BPlusNode.getBPlusNode(getTree(),
+                getFirstChild()).locateLeaf(key, findFirst);
+    }
+    BEntry last_entry = entry;
     while(iterator.hasNext()){
         entry = iterator.next();
-        if((entry.getKey().compareTo(key) > 0) || 
-               (findFirst && entry.getKey().compareTo(key) == 0)){
-            if(lastEntry != null){
-                page_num = lastEntry.getPageNum();
-            }else{
-                page_num = this.getFirstChild();
-            }
-            break;
+        if((findFirst && entry.getKey().compareTo(key) == 0) ||
+                (entry.getKey().compareTo(key) > 0)){
+            return BPlusNode.getBPlusNode(getTree(),
+                    last_entry.getPageNum()).locateLeaf(key, findFirst);
         }
-        lastEntry = entry;
+        last_entry = entry;
     }
-
-    if(page_num > -1){
-        return BPlusNode.getBPlusNode(getTree(), page_num).locateLeaf(key,
-                    findFirst);
-    }else{
-        return BPlusNode.getBPlusNode(getTree(), entry.getPageNum()).locateLeaf(key, findFirst); 
-    }
+    return BPlusNode.getBPlusNode(getTree(), 
+            entry.getPageNum()).locateLeaf(key, findFirst);
   }
 
   /**

@@ -216,7 +216,7 @@ public class BPlusTree {
         LeafNode leaf = (LeafNode)BPlusNode.getBPlusNode(
                 this, this.firstLeafPageNum);
         int index = 0;
-        System.out.print("First node: ");
+        System.out.print("First node: pageNum=" + leaf.getPageNum() + "; ");
         for(BEntry entry: leaf.getAllValidEntries()){
             System.out.print("["+index+"]" + entry.toString()+", ");
             index++;
@@ -224,7 +224,7 @@ public class BPlusTree {
         System.out.println();
         int node_num = 2;
         while(leaf.getNextLeaf() > -1){
-            System.out.print(node_num + "th node: ");
+            System.out.print(node_num + "th node: pageNum=" + leaf.getPageNum() + "; ");
             leaf = (LeafNode)BPlusNode.getBPlusNode(
                     this, leaf.getNextLeaf());
             for(BEntry entry: leaf.getAllValidEntries()){
@@ -284,6 +284,18 @@ public class BPlusTree {
    */
 
     public BPlusIterator(LeafNode leaf, DataType key, boolean scan) {
+        if(key instanceof IntDataType){
+            if(key.compareTo(new IntDataType(204)) == 0){
+                System.out.println("Starting dump parent entry of node: " + leaf.getPageNum());
+                int index = 0;
+                for(BEntry entry: ((InnerNode)(BPlusNode.getBPlusNode(leaf.getTree(), 
+                                leaf.getParent()))).getAllValidEntries()){
+                    System.out.print("[" + index + "]" + entry + ", ");
+                    index ++;
+                }
+                System.out.println();
+            }
+        }
         this.isScan = scan;
         this.lookupKey = key;
         if(isScan){

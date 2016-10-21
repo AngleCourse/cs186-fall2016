@@ -330,6 +330,7 @@ public class TestBPlusTree {
         bp.insertKey(new IntDataType(k), new RecordID(k, 0));
       }
     }
+    bp.dumpLeaves();
 
     for (int k = 0; k < 250; k++) {
       Iterator<RecordID> rids = bp.lookupKey(new IntDataType(k));
