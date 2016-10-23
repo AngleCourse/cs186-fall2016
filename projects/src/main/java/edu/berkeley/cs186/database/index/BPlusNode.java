@@ -8,6 +8,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
 
+import edu.berkeley.cs186.database.datatypes.IntDataType;
+
 /**
  * A B+ tree node. A node is represented as a page with a page header, slot
  * bitmap, and entries. The type of page header and entry are determined by
@@ -254,11 +256,49 @@ public abstract class BPlusNode {
       throw new BPlusTreeException("Node should have split before; Currently is full");
     }
     List<BEntry> entries = getAllValidEntries();
+
+    if((this instanceof InnerNode) && ent.getKey().compareTo(new IntDataType(204)) == 0){
+        System.out.print("Dump entries on InnerNode(Page Number is " +
+                getPageNum() + ") on entry insertion " + ent.toString() +
+                ": "); 
+        int index = 0;
+        for(BEntry entry: entries){
+            System.out.print("[" + index + "]" + entry.toString() + ", ");
+            index++;
+        }
+        System.out.println();
+    }
+
+
     entries.add(ent);
     Collections.sort(entries);
     overwriteBNodeEntries(entries);
+
+
+    if((this instanceof InnerNode) && ent.getKey().compareTo(new IntDataType(204)) == 0){
+        System.out.print("Dump entries on InnerNode(Page Number is " +
+                getPageNum() + ") after entry insertion " + ent.toString() +
+                ": "); 
+        int index = 0;
+        for(BEntry entry: entries){
+            System.out.print("[" + index + "]" + entry.toString() + ", ");
+            index++;
+        }
+        System.out.println();
+    }
     if (!hasSpace()) {
       splitNode();
+      if((this instanceof InnerNode) && ent.getKey().compareTo(new IntDataType(204)) == 0){
+          System.out.print("Dump entries on InnerNode(Page Number is " +
+                  getPageNum() + ") after entry insertion " + ent.toString() +
+                  " and split: "); 
+          int index = 0;
+          for(BEntry entry: entries){
+              System.out.print("[" + index + "]" + entry.toString() + ", ");
+              index++;
+          }
+          System.out.println();
+      }
     }
    }
 

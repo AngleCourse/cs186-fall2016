@@ -222,11 +222,26 @@ public class BPlusTree {
             index++;
         }
         System.out.println();
+
+        int inner_node_page = leaf.getParent();
+        int inner_counter = 1;
+        int inner_node_index = 0;
+        System.out.print(inner_counter + "th inner node: pageNum=" + 
+                inner_node_page + "; ");
+        for(BEntry entry: BPlusNode.getBPlusNode(this, 
+                    inner_node_page).getAllValidEntries()){
+            System.out.print("[" + inner_node_index + "]" + 
+                    entry.toString() + ", ");
+            inner_node_index++;
+        }
+        System.out.println();
+        inner_counter++;
+
         int node_num = 2;
         while(leaf.getNextLeaf() > -1){
-            System.out.print(node_num + "th node: pageNum=" + leaf.getPageNum() + "; ");
             leaf = (LeafNode)BPlusNode.getBPlusNode(
                     this, leaf.getNextLeaf());
+            System.out.print(node_num + "th node: pageNum=" + leaf.getPageNum() + "; ");
             for(BEntry entry: leaf.getAllValidEntries()){
                 System.out.print("[" + index + "]" + 
                         entry.toString()+", ");
@@ -234,6 +249,20 @@ public class BPlusTree {
             }
             System.out.println();
             node_num++;
+
+            inner_node_index = 0;
+            if(inner_node_page != leaf.getParent()){
+                System.out.print(inner_counter + "th inner node: pageNum=" + 
+                        inner_node_page + "; ");
+                for(BEntry entry: BPlusNode.getBPlusNode(this,
+                            inner_node_page).getAllValidEntries()){
+                    System.out.print("[" + inner_node_index + "]" + 
+                            entry.toString() + ", ");
+                    inner_node_index++;
+                }
+                System.out.println();
+                inner_counter++;
+            }
         }
     }
   /**
