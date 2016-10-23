@@ -251,18 +251,16 @@ public class BPlusTree {
             node_num++;
 
             inner_node_index = 0;
-            if(inner_node_page != leaf.getParent()){
-                System.out.print(inner_counter + "th inner node: pageNum=" + 
-                        inner_node_page + "; ");
-                for(BEntry entry: BPlusNode.getBPlusNode(this,
-                            inner_node_page).getAllValidEntries()){
-                    System.out.print("[" + inner_node_index + "]" + 
-                            entry.toString() + ", ");
-                    inner_node_index++;
-                }
-                System.out.println();
-                inner_counter++;
+            System.out.print(inner_counter + "th inner node: pageNum=" + 
+                    inner_node_page + "; ");
+            for(BEntry entry: BPlusNode.getBPlusNode(this,
+                        inner_node_page).getAllValidEntries()){
+                System.out.print("[" + inner_node_index + "]" + 
+                        entry.toString() + ", ");
+                inner_node_index++;
             }
+            System.out.println();
+            inner_counter++;
         }
     }
   /**

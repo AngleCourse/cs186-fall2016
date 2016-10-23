@@ -256,49 +256,57 @@ public abstract class BPlusNode {
       throw new BPlusTreeException("Node should have split before; Currently is full");
     }
     List<BEntry> entries = getAllValidEntries();
-
-    if((this instanceof InnerNode) && ent.getKey().compareTo(new IntDataType(204)) == 0){
-        System.out.print("Dump entries on InnerNode(Page Number is " +
-                getPageNum() + ") on entry insertion " + ent.toString() +
-                ": "); 
-        int index = 0;
-        for(BEntry entry: entries){
-            System.out.print("[" + index + "]" + entry.toString() + ", ");
-            index++;
-        }
-        System.out.println();
-    }
-
-
     entries.add(ent);
     Collections.sort(entries);
     overwriteBNodeEntries(entries);
-
-
-    if((this instanceof InnerNode) && ent.getKey().compareTo(new IntDataType(204)) == 0){
-        System.out.print("Dump entries on InnerNode(Page Number is " +
-                getPageNum() + ") after entry insertion " + ent.toString() +
-                ": "); 
-        int index = 0;
-        for(BEntry entry: entries){
-            System.out.print("[" + index + "]" + entry.toString() + ", ");
-            index++;
-        }
-        System.out.println();
-    }
     if (!hasSpace()) {
-      splitNode();
-      if((this instanceof InnerNode) && ent.getKey().compareTo(new IntDataType(204)) == 0){
-          System.out.print("Dump entries on InnerNode(Page Number is " +
-                  getPageNum() + ") after entry insertion " + ent.toString() +
-                  " and split: "); 
-          int index = 0;
-          for(BEntry entry: entries){
-              System.out.print("[" + index + "]" + entry.toString() + ", ");
-              index++;
+      if(this instanceof LeafNode){
+          System.out.print("Before split node (page number is " + getPageNum() + 
+                  ", parent page number is " + getParent() + ") ");
+          for(BEntry entry: getAllValidEntries()){
+              System.out.print(entry.toString() + " ");
           }
           System.out.println();
+          if(getParent() > -1){
+            BPlusNode parent = BPlusNode.getBPlusNode(getTree(), getParent());
+            System.out.print("Parent node (page number is " + parent.getPageNum() +
+                    ") ");
+            for(BEntry entry: parent.getAllValidEntries()){
+                System.out.print(entry.toString() + " ");
+            }
+            System.out.println();
+          }
       }
+      splitNode();
+      if(this instanceof LeafNode){
+          System.out.print("After split node (page number is " + getPageNum() + 
+                  ", parent page number is " + getParent() + ") ");
+          for(BEntry entry: getAllValidEntries()){
+              System.out.print(entry.toString() + " ");
+          }
+          if(getParent() > -1 && ((LeafNode) this).getNextLeaf() > -1){
+            System.out.println();
+            LeafNode leaf = (LeafNode)BPlusNode.getBPlusNode(getTree(), 
+                    ((LeafNode) this).getNextLeaf());
+            System.out.print("Next leaf node (page number is " + leaf.getPageNum()  + 
+                    ", parent page number is " + leaf.getParent() + ") ");
+            for(BEntry entry: leaf.getAllValidEntries()){
+                System.out.print(entry.toString() + " ");
+            }
+            System.out.println();
+            if(leaf.getParent() > -1){
+                BPlusNode parent = BPlusNode.getBPlusNode(getTree(), leaf.getParent());
+                System.out.print("Parent node (page number is " + parent.getPageNum() +
+                        ") ");
+                for(BEntry entry: parent.getAllValidEntries()){
+                    System.out.print(entry.toString() + " ");
+                }
+                System.out.println();
+            }
+          }
+
+      }
+
     }
    }
 

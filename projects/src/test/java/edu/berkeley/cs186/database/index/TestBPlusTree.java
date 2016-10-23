@@ -3,6 +3,7 @@ package edu.berkeley.cs186.database.index;
 import edu.berkeley.cs186.database.table.RecordID;
 import edu.berkeley.cs186.database.datatypes.*;
 import edu.berkeley.cs186.database.StudentTest;
+import edu.berkeley.cs186.database.Debug;
 
 import org.junit.After;
 import org.junit.Before;
@@ -213,6 +214,7 @@ public class TestBPlusTree {
   }
   
   @Test
+  @Category(edu.berkeley.cs186.database.Debug.class)
   public void testBPlusTreeSweepInsertLookupKeyMultipleFullLeafSplit() {
 
     //Insert 4 full leafs of records in sweeping fashion
@@ -330,7 +332,8 @@ public class TestBPlusTree {
         bp.insertKey(new IntDataType(k), new RecordID(k, 0));
       }
     }
-    bp.dumpLeaves();
+
+    //bp.dumpLeaves();
 
     for (int k = 0; k < 250; k++) {
       Iterator<RecordID> rids = bp.lookupKey(new IntDataType(k));
