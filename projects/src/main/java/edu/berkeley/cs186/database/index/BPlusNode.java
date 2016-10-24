@@ -137,6 +137,28 @@ public abstract class BPlusNode {
   }
 
   public void setParent(int val) {
+    if(getParent() != val && getParent() > -1 && val > -1){
+        System.out.println("Start setting parent");
+        System.out.println("Before setting, parent is " + getParent() + 
+                ", After setting, parent is " + val);
+        BPlusNode node = BPlusNode.getBPlusNode(getTree(), getParent());
+        System.out.print("Old parent: ");
+        for(BEntry entry: node.getAllValidEntries()){
+            System.out.print("(" + entry + ") ");
+        }
+        System.out.println();
+        System.out.print("New parent: ");
+        node = BPlusNode.getBPlusNode(getTree(), val);
+        for(BEntry entry: node.getAllValidEntries()){
+            System.out.print("(" + entry + ") ");
+        }
+        System.out.println();
+        System.out.print("Current Node: page number is " + getPageNum());
+        for(BEntry entry: getAllValidEntries()){
+            System.out.print("(" + entry + ") ");
+        }
+        System.out.println();
+    }
     getPage().writeInt(1, val);
   }
   
@@ -260,53 +282,7 @@ public abstract class BPlusNode {
     Collections.sort(entries);
     overwriteBNodeEntries(entries);
     if (!hasSpace()) {
-      if(this instanceof LeafNode){
-          System.out.print("Before split node (page number is " + getPageNum() + 
-                  ", parent page number is " + getParent() + ") ");
-          for(BEntry entry: getAllValidEntries()){
-              System.out.print(entry.toString() + " ");
-          }
-          System.out.println();
-          if(getParent() > -1){
-            BPlusNode parent = BPlusNode.getBPlusNode(getTree(), getParent());
-            System.out.print("Parent node (page number is " + parent.getPageNum() +
-                    ") ");
-            for(BEntry entry: parent.getAllValidEntries()){
-                System.out.print(entry.toString() + " ");
-            }
-            System.out.println();
-          }
-      }
-      splitNode();
-      if(this instanceof LeafNode){
-          System.out.print("After split node (page number is " + getPageNum() + 
-                  ", parent page number is " + getParent() + ") ");
-          for(BEntry entry: getAllValidEntries()){
-              System.out.print(entry.toString() + " ");
-          }
-          if(getParent() > -1 && ((LeafNode) this).getNextLeaf() > -1){
-            System.out.println();
-            LeafNode leaf = (LeafNode)BPlusNode.getBPlusNode(getTree(), 
-                    ((LeafNode) this).getNextLeaf());
-            System.out.print("Next leaf node (page number is " + leaf.getPageNum()  + 
-                    ", parent page number is " + leaf.getParent() + ") ");
-            for(BEntry entry: leaf.getAllValidEntries()){
-                System.out.print(entry.toString() + " ");
-            }
-            System.out.println();
-            if(leaf.getParent() > -1){
-                BPlusNode parent = BPlusNode.getBPlusNode(getTree(), leaf.getParent());
-                System.out.print("Parent node (page number is " + parent.getPageNum() +
-                        ") ");
-                for(BEntry entry: parent.getAllValidEntries()){
-                    System.out.print(entry.toString() + " ");
-                }
-                System.out.println();
-            }
-          }
-
-      }
-
+        splitNode();
     }
    }
 

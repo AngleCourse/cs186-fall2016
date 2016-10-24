@@ -214,14 +214,12 @@ public class TestBPlusTree {
   }
   
   @Test
-  @Category(edu.berkeley.cs186.database.Debug.class)
   public void testBPlusTreeSweepInsertLookupKeyMultipleFullLeafSplit() {
 
     //Insert 4 full leafs of records in sweeping fashion
     for (int i = 0; i < 8*intLeafPageSize; i++) {
       bp.insertKey(new IntDataType(i % 4), new RecordID(i % 4, i));
     }
-    //bp.dumpLeaves();
     Iterator<RecordID> rids = bp.lookupKey(new IntDataType(0));
     assertTrue(rids.hasNext());
 
@@ -326,14 +324,15 @@ public class TestBPlusTree {
   public void testBPlusTreeSweepInsertLookupInnerSplit() {
     //insert enough for InnerNode Split; numEntries + firstChild
     //each key should span 2 pages
+    System.out.println("Starting running test");
     
     for (int i = 0; i < 2*intLeafPageSize; i++) {
       for (int k = 0; k < 250; k++) {
         bp.insertKey(new IntDataType(k), new RecordID(k, 0));
       }
     }
+    bp.dumpLeaves();
 
-    //bp.dumpLeaves();
 
     for (int k = 0; k < 250; k++) {
       Iterator<RecordID> rids = bp.lookupKey(new IntDataType(k));
@@ -355,13 +354,14 @@ public class TestBPlusTree {
       int val = rand.nextInt();
       bp.insertKey(new IntDataType(val), new RecordID(val, 0));
     }
+
     Iterator<RecordID> rids = bp.sortedScan();
     assertTrue(rids.hasNext());
     int last = rids.next().getPageNum();
     for (int i = 0; i < innerNodeSplit*intLeafPageSize - 1; i++) {
       assertTrue(rids.hasNext());
       RecordID rid = rids.next();
-      //System.out.println(rid.getPageNum());
+      System.out.println(rid.getPageNum());
       assertTrue("iteration: " + i + " last: " + last + " curr: " + rid.getPageNum(), last <= rid.getPageNum());
       last = rid.getPageNum();
     }

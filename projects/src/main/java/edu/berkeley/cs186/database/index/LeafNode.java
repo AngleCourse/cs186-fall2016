@@ -106,18 +106,18 @@ public class LeafNode extends BPlusNode {
           //Find a place to hold entry in the parent node
           if(getParent() > -1){
               BPlusNode parent = BPlusNode.getBPlusNode(getTree(), getParent());
+              leaf.setParent(parent.getPageNum());
               parent.insertBEntry(entry);
-              leaf.setParent(getParent());
+              
           }else{
               //root node
               InnerNode parent = new InnerNode(getTree());
               parent.setParent(-1);
               parent.setFirstChild(getPageNum());
               getTree().updateRoot(parent.getPageNum());
-              parent.insertBEntry(entry);
-
               setParent(parent.getPageNum());
               leaf.setParent(parent.getPageNum());
+              parent.insertBEntry(entry);
           }
           
       }

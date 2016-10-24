@@ -216,7 +216,8 @@ public class BPlusTree {
         LeafNode leaf = (LeafNode)BPlusNode.getBPlusNode(
                 this, this.firstLeafPageNum);
         int index = 0;
-        System.out.print("First node: pageNum=" + leaf.getPageNum() + "; ");
+        System.out.print("First node: pageNum=" + leaf.getPageNum() + ", parent page number is "
+                + leaf.getParent() + "; ");
         for(BEntry entry: leaf.getAllValidEntries()){
             System.out.print("["+index+"]" + entry.toString()+", ");
             index++;
@@ -228,6 +229,8 @@ public class BPlusTree {
         int inner_node_index = 0;
         System.out.print(inner_counter + "th inner node: pageNum=" + 
                 inner_node_page + "; ");
+        System.out.print("Firstchild " + ((InnerNode)BPlusNode.getBPlusNode(this,
+                    inner_node_page)).getFirstChild());
         for(BEntry entry: BPlusNode.getBPlusNode(this, 
                     inner_node_page).getAllValidEntries()){
             System.out.print("[" + inner_node_index + "]" + 
@@ -241,7 +244,8 @@ public class BPlusTree {
         while(leaf.getNextLeaf() > -1){
             leaf = (LeafNode)BPlusNode.getBPlusNode(
                     this, leaf.getNextLeaf());
-            System.out.print(node_num + "th node: pageNum=" + leaf.getPageNum() + "; ");
+            System.out.print(node_num + "th node: pageNum=" + leaf.getPageNum() 
+                    + ", parent page number is " + leaf.getParent() + "; ");
             for(BEntry entry: leaf.getAllValidEntries()){
                 System.out.print("[" + index + "]" + 
                         entry.toString()+", ");
@@ -311,18 +315,6 @@ public class BPlusTree {
    */
 
     public BPlusIterator(LeafNode leaf, DataType key, boolean scan) {
-        if(key instanceof IntDataType){
-            if(key.compareTo(new IntDataType(204)) == 0){
-                System.out.println("Starting dump parent entry of node: " + leaf.getPageNum());
-                int index = 0;
-                for(BEntry entry: ((InnerNode)(BPlusNode.getBPlusNode(leaf.getTree(), 
-                                leaf.getParent()))).getAllValidEntries()){
-                    System.out.print("[" + index + "]" + entry + ", ");
-                    index ++;
-                }
-                System.out.println();
-            }
-        }
         this.isScan = scan;
         this.lookupKey = key;
         if(isScan){

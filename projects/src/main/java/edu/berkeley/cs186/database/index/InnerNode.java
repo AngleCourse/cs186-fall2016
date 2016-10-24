@@ -2,6 +2,7 @@ package edu.berkeley.cs186.database.index;
 
 import edu.berkeley.cs186.database.datatypes.DataType;
 import edu.berkeley.cs186.database.io.Page;
+import edu.berkeley.cs186.database.datatypes.IntDataType;
 
 import java.util.List;
 import java.util.Iterator;
@@ -56,6 +57,14 @@ public class InnerNode extends BPlusNode {
     BEntry entry = iterator.next();
     if((findFirst && entry.getKey().compareTo(key) == 0) ||
             (entry.getKey().compareTo(key) > 0)){
+        if(key.compareTo(new IntDataType(-720463)) == 0){
+            System.out.println("goes left on InnerNode(page number is " +
+                    getPageNum() + "). Entry is " + entry);
+            for(BEntry e: getAllValidEntries()){
+                System.out.print("(" + e + ") ");
+            }
+            System.out.println();
+        }
         return BPlusNode.getBPlusNode(getTree(),
                 getFirstChild()).locateLeaf(key, findFirst);
     }
@@ -64,6 +73,14 @@ public class InnerNode extends BPlusNode {
         entry = iterator.next();
         if((findFirst && entry.getKey().compareTo(key) == 0) ||
                 (entry.getKey().compareTo(key) > 0)){
+            if(key.compareTo(new IntDataType(-720463)) == 0){
+                System.out.println("goes left on InnerNode(page number is " +
+                        getPageNum() + "). Entry is " + entry);
+                for(BEntry e: getAllValidEntries()){
+                    System.out.print("(" + e + ") ");
+                }
+                System.out.println();
+            }
             return BPlusNode.getBPlusNode(getTree(),
                     last_entry.getPageNum()).locateLeaf(key, findFirst);
         }
@@ -100,8 +117,12 @@ public class InnerNode extends BPlusNode {
               }
           }
           overwriteBNodeEntries(entries);
+          for(BEntry e: new_entries){
+              BPlusNode.getBPlusNode(getTree(), e.getPageNum()).setParent(node.getPageNum()); 
+          }
           node.overwriteBNodeEntries(new_entries);
           node.setFirstChild(entry.getPageNum());
+          BPlusNode.getBPlusNode(getTree(), entry.getPageNum()).setParent(node.getPageNum());
           entry = new InnerEntry(entry.getKey(), node.getPageNum());
 
           if(isRoot()){
