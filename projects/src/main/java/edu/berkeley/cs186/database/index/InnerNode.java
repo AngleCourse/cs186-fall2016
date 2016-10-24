@@ -57,14 +57,6 @@ public class InnerNode extends BPlusNode {
     BEntry entry = iterator.next();
     if((findFirst && entry.getKey().compareTo(key) == 0) ||
             (entry.getKey().compareTo(key) > 0)){
-        if(key.compareTo(new IntDataType(-720463)) == 0){
-            System.out.println("goes left on InnerNode(page number is " +
-                    getPageNum() + "). Entry is " + entry);
-            for(BEntry e: getAllValidEntries()){
-                System.out.print("(" + e + ") ");
-            }
-            System.out.println();
-        }
         return BPlusNode.getBPlusNode(getTree(),
                 getFirstChild()).locateLeaf(key, findFirst);
     }
@@ -73,14 +65,6 @@ public class InnerNode extends BPlusNode {
         entry = iterator.next();
         if((findFirst && entry.getKey().compareTo(key) == 0) ||
                 (entry.getKey().compareTo(key) > 0)){
-            if(key.compareTo(new IntDataType(-720463)) == 0){
-                System.out.println("goes left on InnerNode(page number is " +
-                        getPageNum() + "). Entry is " + entry);
-                for(BEntry e: getAllValidEntries()){
-                    System.out.print("(" + e + ") ");
-                }
-                System.out.println();
-            }
             return BPlusNode.getBPlusNode(getTree(),
                     last_entry.getPageNum()).locateLeaf(key, findFirst);
         }

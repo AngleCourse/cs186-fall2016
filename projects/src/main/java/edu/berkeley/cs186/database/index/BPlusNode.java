@@ -137,28 +137,6 @@ public abstract class BPlusNode {
   }
 
   public void setParent(int val) {
-    if(getParent() != val && getParent() > -1 && val > -1){
-        System.out.println("Start setting parent");
-        System.out.println("Before setting, parent is " + getParent() + 
-                ", After setting, parent is " + val);
-        BPlusNode node = BPlusNode.getBPlusNode(getTree(), getParent());
-        System.out.print("Old parent: ");
-        for(BEntry entry: node.getAllValidEntries()){
-            System.out.print("(" + entry + ") ");
-        }
-        System.out.println();
-        System.out.print("New parent: ");
-        node = BPlusNode.getBPlusNode(getTree(), val);
-        for(BEntry entry: node.getAllValidEntries()){
-            System.out.print("(" + entry + ") ");
-        }
-        System.out.println();
-        System.out.print("Current Node: page number is " + getPageNum());
-        for(BEntry entry: getAllValidEntries()){
-            System.out.print("(" + entry + ") ");
-        }
-        System.out.println();
-    }
     getPage().writeInt(1, val);
   }
   
