@@ -18,6 +18,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.io.Closeable;
+
 /**
  * A PageAllocation system for an OS paging system. Provides memory-mapped paging from the OS, an
  * interface to individual pages with the Page objects, an LRU cache for pages, 16GB worth of paging,
@@ -30,7 +31,7 @@ public class PageAllocator implements Iterable<Page>, Closeable {
   private static final int numHeaderPages = 1024;
   private static final int cacheSize = 1024;
 
-  private static AtomicInteger pACounter = new AtomicInteger(0); 
+  private static AtomicInteger pACounter = new AtomicInteger(0);
   private static LRUCache<Long, Page> pageLRU = new LRUCache<Long, Page>(cacheSize);
   //Cache statis
   private static AtomicLong numIOs = new AtomicLong(0); 
@@ -42,8 +43,8 @@ public class PageAllocator implements Iterable<Page>, Closeable {
   private int allocID;
   private boolean durable; //Whether we can flush the in memory page to disk or not
   /**
-   * Create a new PageAllocator that writes its bytes into a file named fName. If wipe is true, the
-   * data in the page is completely removed.
+   * Creates a new PageAllocator that writes its bytes into a file named fName.
+   * If wipe is true, the data in the page is completely removed.
    *
    * @param fName the name of the file for this PageAllocator
    * @param wipe a boolean specifying whether to wipe the file
@@ -63,7 +64,7 @@ public class PageAllocator implements Iterable<Page>, Closeable {
     //Spacial page: page_number is -1
     this.masterPage = new Page(this.fc, 0, -1);
     this.allocID = pACounter.getAndIncrement();
-        
+
     if (wipe) {
       // Nukes masterPage and headerPages
       // The master page should consist of an array of head page numbers 
@@ -73,7 +74,7 @@ public class PageAllocator implements Iterable<Page>, Closeable {
 
       int[] pageCounts = new int[ib.capacity()];
       ib.get(pageCounts);
-      
+
       this.numPages = 0;
 
       for (int i = 0; i < numHeaderPages; i++) {
@@ -85,12 +86,12 @@ public class PageAllocator implements Iterable<Page>, Closeable {
 
       this.masterPage.wipe();
     }
-    
+
     byte[] masterBytes = masterPage.readBytes();
     IntBuffer ib = ByteBuffer.wrap(masterBytes).asIntBuffer();
     int[] pageCounts = new int[ib.capacity()];
     ib.get(pageCounts);
-    
+
     this.numPages = 0;
     for (int i = 0; i < numHeaderPages; i++) {
       this.numPages += pageCounts[i];
@@ -107,7 +108,7 @@ public class PageAllocator implements Iterable<Page>, Closeable {
     IntBuffer ib = ByteBuffer.wrap(masterBytes).asIntBuffer();
     int[] pageCounts = new int[ib.capacity()];
     ib.get(pageCounts);
-    
+
     Page headerPage = null;
     int headerIndex = -1;
     for (int i = 0; i < numHeaderPages; i++) {
@@ -118,11 +119,11 @@ public class PageAllocator implements Iterable<Page>, Closeable {
         break;
       }
     }
-    
+
     if (headerPage == null) {
       throw new PageException("No free Pages Available");
     }
-    
+
     byte[] headerBytes = headerPage.readBytes();
     int pageIndex = -1;
 
@@ -132,16 +133,16 @@ public class PageAllocator implements Iterable<Page>, Closeable {
         break;
       }
     }
-    
+
     if (pageIndex == -1) {
-     throw new PageException("Header page should have free page but doesnt"); 
+     throw new PageException("Header page should have free page but doesnt");
     }
 
     int newCount = pageCounts[headerIndex] + 1;
     byte[] newCountBytes = ByteBuffer.allocate(4).putInt(newCount).array();
     this.masterPage.writeBytes(headerIndex*4, 4, newCountBytes);
     headerPage.writeByte(pageIndex, (byte) 1);
-   
+
     if (this.durable) {
       this.masterPage.flush();
       headerPage.flush();
@@ -165,44 +166,44 @@ public class PageAllocator implements Iterable<Page>, Closeable {
     }
 
     numIOs.getAndIncrement();
-     
+
     synchronized(PageAllocator.class) {
       if (pageLRU.containsKey(translatePageNum(pageNum))) {
         return pageLRU.get(translatePageNum(pageNum));
       }
     }
-    
+
     int headPageIndex = pageNum/Page.pageSize;
-    
+
     if (headPageIndex >= numHeaderPages) {
       throw new PageException("invalid page number -- out of bounds");
     }
-      
+
     byte[] headCountBytes = this.masterPage.readBytes(headPageIndex*4, 4);
     int headCount = ByteBuffer.wrap(headCountBytes).getInt();
-   
+
     if (headCount < 1) {
       throw new PageException("invalid page number -- page not allocated");
     }
-    
+
     Page headPage = getHeadPage(headPageIndex);
-   
-    int dataPageIndex = pageNum % Page.pageSize; 
+
+    int dataPageIndex = pageNum % Page.pageSize;
 
     byte validByte = headPage.readByte(dataPageIndex);
-    
+
     if (validByte == 0) {
       throw new PageException("invalid page number -- page not allocated");
     }
-    
+
     int dataBlockID = 2 + headPageIndex*(Page.pageSize + 1) + dataPageIndex;
     Page dataPage = new Page(this.fc, dataBlockID, pageNum, this.durable);
-    
+
     synchronized(PageAllocator.class) {
       pageLRU.put(translatePageNum(pageNum), dataPage);
     }
 
-    return dataPage; 
+    return dataPage;
   }
 
   /**
@@ -218,14 +219,14 @@ public class PageAllocator implements Iterable<Page>, Closeable {
     }
     int pageNum = p.getPageNum();
     int headPageIndex = pageNum/Page.pageSize;
-    int dataPageIndex = pageNum % Page.pageSize; 
-    
+    int dataPageIndex = pageNum % Page.pageSize;
+
     Page headPage = getHeadPage(headPageIndex);
-    
+
     if (headPage.readByte(dataPageIndex) == 0) {
       return false;
     }
-    
+
     headPage.writeByte(dataPageIndex, (byte) 0);
     if (this.durable) {
       headPage.flush();
@@ -239,13 +240,13 @@ public class PageAllocator implements Iterable<Page>, Closeable {
     if (this.durable) {
       masterPage.flush();
     }
-    
-    synchronized(PageAllocator.class) { 
+
+    synchronized(PageAllocator.class) {
       if (pageLRU.containsKey(translatePageNum(pageNum))) {
         pageLRU.remove(translatePageNum(pageNum));
       }
     }
-    
+
     this.numPages -= 1;
     return true;
   }
@@ -279,8 +280,8 @@ public class PageAllocator implements Iterable<Page>, Closeable {
     }
     List<Long> toRemove = new ArrayList<Long>();
     Set<Long> vPageNums = null;
-    List<Page> toFlush = new ArrayList<Page>(); 
-    
+    List<Page> toFlush = new ArrayList<Page>();
+
     synchronized(PageAllocator.class) {
       vPageNums = pageLRU.keySet();
     }
@@ -305,7 +306,7 @@ public class PageAllocator implements Iterable<Page>, Closeable {
       }
     }
     this.masterPage = null;
-    try { 
+    try {
       this.fc.close();
     } catch (IOException e) {
       throw new PageException("Could not close Page Alloc " + e.getMessage());
@@ -316,19 +317,23 @@ public class PageAllocator implements Iterable<Page>, Closeable {
     int headBlockID = 1 + headIndex*(Page.pageSize + 1);
     return new Page(this.fc, headBlockID, -1);
   }
-  
+
+  public int getNumPages() {
+    return this.numPages;
+  }
+
   public static long getNumIOs() {
     return PageAllocator.numIOs.get();
   }
-  
+
   static void incrementNumIOs() {
     PageAllocator.numIOs.getAndIncrement();
   }
-  
+
   static void incrementCacheMisses() {
     PageAllocator.cacheMisses.getAndIncrement();
   }
-  
+
   public static long getNumCacheMisses() {
     return PageAllocator.cacheMisses.get();
   }
@@ -336,7 +341,7 @@ public class PageAllocator implements Iterable<Page>, Closeable {
   private long translatePageNum(int pageNum) {
     return (((long) this.allocID) << 32) | (((long) pageNum) & 0xFFFFFFFFL);
   }
-  
+
   static private int translateAllocator(long vPageNum) {
     return (int) ((vPageNum & 0xFFFFFFFF00000000L) >> 32);
   }
@@ -347,7 +352,7 @@ public class PageAllocator implements Iterable<Page>, Closeable {
   public Iterator<Page> iterator() {
       return new PageIterator();
   }
-    
+
   private class PageIterator implements Iterator<Page> {
     private int pageNum;
     private int cursor;
@@ -371,7 +376,7 @@ public class PageAllocator implements Iterable<Page>, Closeable {
             pageNum++;
             return p;
           } catch (PageException e) {
-            cursor++; 
+            cursor++;
           }
         }
       }

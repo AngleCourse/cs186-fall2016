@@ -149,6 +149,10 @@ public class Table implements Iterable<Record>, Closeable {
       return new TableIterator();
   }
 
+  public Iterator<Page> pageIterator() {
+    return this.allocator.iterator();
+  }
+
   /**
    * Add a new record to this table. The record should be added to the first
    * free slot of the first free page if one exists, otherwise a new page should
@@ -292,9 +296,19 @@ public class Table implements Iterable<Record>, Closeable {
     return this.numEntriesPerPage;
   }
 
+  public int getNumDataPages() {
+    return this.allocator.getNumPages() - 1;
+  }
+
+  public long getNumRecords() {
+    return this.numRecords;
+  }
+
   public Schema getSchema() {
     return this.schema;
   }
+
+  public TableStats getStats() { return this.stats; }
 
   /**
    * Check whether a RecordID is valid or not. That is, check to see if the slot
@@ -497,9 +511,19 @@ public class Table implements Iterable<Record>, Closeable {
    * @param page the page to read from
    * @return a byte[] with the slot header
    */
-  private byte[] readPageHeader(Page page) {
+  public byte[] readPageHeader(Page page) {
     return page.readBytes(0, this.pageHeaderSize);
   }
+
+  public int getPageHeaderSize() {
+    return this.pageHeaderSize;
+  }
+
+  public int getEntrySize()  {
+    return this.schema.getEntrySize();
+  }
+
+  public int getNumPages() { return this.allocator.getNumPages(); }
 
   /**
    * An implementation of Iterator that provides an iterator interface over all
