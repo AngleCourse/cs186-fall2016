@@ -610,4 +610,155 @@ public class JoinOperatorTest {
     }
     assertTrue(count == 666*666*3);
   }
+
+
+  @Test(timeout=5000)
+  public void testBNLJDiffOutPutThanPNLJ() throws QueryPlanException, DatabaseException, IOException {
+    File tempDir = tempFolder.newFolder("joinTest");
+    Database d = new Database(tempDir.getAbsolutePath(), 4);
+    Database.Transaction transaction = d.beginTransaction();
+    Record r1 = TestUtils.createRecordWithAllTypesWithValue(1);
+    List<DataType> r1Vals = r1.getValues();
+    Record r2 = TestUtils.createRecordWithAllTypesWithValue(2);
+    List<DataType> r2Vals = r2.getValues();
+    Record r3 = TestUtils.createRecordWithAllTypesWithValue(3);
+    List<DataType> r3Vals = r3.getValues();
+    Record r4 = TestUtils.createRecordWithAllTypesWithValue(4);
+    List<DataType> r4Vals = r4.getValues();
+    List<DataType> expectedRecordValues1 = new ArrayList<DataType>();
+    List<DataType> expectedRecordValues2 = new ArrayList<DataType>();
+    List<DataType> expectedRecordValues3 = new ArrayList<DataType>();
+    List<DataType> expectedRecordValues4 = new ArrayList<DataType>();
+
+    for (int i = 0; i < 2; i++) {
+      for (DataType val: r1Vals) {
+        expectedRecordValues1.add(val);
+      }
+      for (DataType val: r2Vals) {
+        expectedRecordValues2.add(val);
+      }
+      for (DataType val: r3Vals) {
+        expectedRecordValues3.add(val);
+      }
+      for (DataType val: r4Vals) {
+        expectedRecordValues4.add(val);
+      }
+    }
+    Record expectedRecord1 = new Record(expectedRecordValues1);
+    Record expectedRecord2 = new Record(expectedRecordValues2);
+    Record expectedRecord3 = new Record(expectedRecordValues3);
+    Record expectedRecord4 = new Record(expectedRecordValues4);
+    d.createTable(TestUtils.createSchemaWithAllTypes(), "leftTable");
+    d.createTable(TestUtils.createSchemaWithAllTypes(), "rightTable");
+    for (int i = 0; i < 2*288; i++) {
+      if (i < 144) {
+        transaction.addRecord("leftTable", r1Vals);
+        transaction.addRecord("rightTable", r3Vals);
+      } else if (i < 288) {
+        transaction.addRecord("leftTable", r2Vals);
+        transaction.addRecord("rightTable", r4Vals);
+      } else if (i < 432) {
+        transaction.addRecord("leftTable", r3Vals);
+        transaction.addRecord("rightTable", r1Vals);
+      } else {
+        transaction.addRecord("leftTable", r4Vals);
+        transaction.addRecord("rightTable", r2Vals);
+      }
+    }
+    QueryOperator s1 = new SequentialScanOperator(transaction,"leftTable");
+    QueryOperator s2 = new SequentialScanOperator(transaction,"rightTable");
+    QueryOperator joinOperator = new BNLJOperator(s1, s2, "int", "int", transaction);
+    Iterator<Record> outputIterator = joinOperator.iterator();
+    int count = 0;
+    while (outputIterator.hasNext()) {
+      Record r = outputIterator.next();
+      if (count < 144 * 144) {
+        assertEquals(expectedRecord3, r);
+      } else if (count < 2 * 144 * 144) {
+        assertEquals(expectedRecord4, r);
+      } else if (count < 3 * 144 * 144) {
+        assertEquals(expectedRecord1, r);
+      } else {
+        assertEquals(expectedRecord2, r);
+      }
+      count++;
+    }
+    assertTrue(count == 82944);
+
+  }
+
+  @Test(timeout=5000)
+  public void testPNLJDiffOutPutThanBNLJ() throws QueryPlanException, DatabaseException, IOException {
+    File tempDir = tempFolder.newFolder("joinTest");
+    Database d = new Database(tempDir.getAbsolutePath(), 4);
+    Database.Transaction transaction = d.beginTransaction();
+    Record r1 = TestUtils.createRecordWithAllTypesWithValue(1);
+    List<DataType> r1Vals = r1.getValues();
+    Record r2 = TestUtils.createRecordWithAllTypesWithValue(2);
+    List<DataType> r2Vals = r2.getValues();
+    Record r3 = TestUtils.createRecordWithAllTypesWithValue(3);
+    List<DataType> r3Vals = r3.getValues();
+    Record r4 = TestUtils.createRecordWithAllTypesWithValue(4);
+    List<DataType> r4Vals = r4.getValues();
+    List<DataType> expectedRecordValues1 = new ArrayList<DataType>();
+    List<DataType> expectedRecordValues2 = new ArrayList<DataType>();
+    List<DataType> expectedRecordValues3 = new ArrayList<DataType>();
+    List<DataType> expectedRecordValues4 = new ArrayList<DataType>();
+
+    for (int i = 0; i < 2; i++) {
+      for (DataType val: r1Vals) {
+        expectedRecordValues1.add(val);
+      }
+      for (DataType val: r2Vals) {
+        expectedRecordValues2.add(val);
+      }
+      for (DataType val: r3Vals) {
+        expectedRecordValues3.add(val);
+      }
+      for (DataType val: r4Vals) {
+        expectedRecordValues4.add(val);
+      }
+    }
+    Record expectedRecord1 = new Record(expectedRecordValues1);
+    Record expectedRecord2 = new Record(expectedRecordValues2);
+    Record expectedRecord3 = new Record(expectedRecordValues3);
+    Record expectedRecord4 = new Record(expectedRecordValues4);
+    d.createTable(TestUtils.createSchemaWithAllTypes(), "leftTable");
+    d.createTable(TestUtils.createSchemaWithAllTypes(), "rightTable");
+    for (int i = 0; i < 2*288; i++) {
+      if (i < 144) {
+        transaction.addRecord("leftTable", r1Vals);
+        transaction.addRecord("rightTable", r3Vals);
+      } else if (i < 288) {
+        transaction.addRecord("leftTable", r2Vals);
+        transaction.addRecord("rightTable", r4Vals);
+      } else if (i < 432) {
+        transaction.addRecord("leftTable", r3Vals);
+        transaction.addRecord("rightTable", r1Vals);
+      } else {
+        transaction.addRecord("leftTable", r4Vals);
+        transaction.addRecord("rightTable", r2Vals);
+      }
+    }
+    QueryOperator s1 = new SequentialScanOperator(transaction,"leftTable");
+    QueryOperator s2 = new SequentialScanOperator(transaction,"rightTable");
+    QueryOperator joinOperator = new PNLJOperator(s1, s2, "int", "int", transaction);
+    Iterator<Record> outputIterator = joinOperator.iterator();
+    int count = 0;
+    while (outputIterator.hasNext()) {
+      Record r = outputIterator.next();
+      if (count < 144 * 144) {
+        assertEquals(expectedRecord1, r);
+      } else if (count < 2 * 144 * 144) {
+        assertEquals(expectedRecord2, r);
+      } else if (count < 3 * 144 * 144) {
+        assertEquals(expectedRecord3, r);
+      } else {
+        assertEquals(expectedRecord4, r);
+      }
+      count++;
+    }
+    assertTrue(count == 82944);
+
+  }
 }

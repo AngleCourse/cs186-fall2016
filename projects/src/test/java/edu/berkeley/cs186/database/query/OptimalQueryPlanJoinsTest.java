@@ -293,7 +293,7 @@ public class OptimalQueryPlanJoinsTest {
 
     queryPlan.join("t2", "t1.int", "t2.int");
     queryPlan.groupBy("t1.int");
-    queryPlan.where("t2.int", QueryPlan.PredicateOperator.GREATER_THAN, new IntDataType(10));
+    queryPlan.where("t2.int", QueryPlan.PredicateOperator.GREATER_THAN, new IntDataType(400));
     List<String> columnNames = new ArrayList<String>();
     columnNames.add("t1.float");
     columnNames.add("t2.int");
@@ -310,14 +310,14 @@ public class OptimalQueryPlanJoinsTest {
 
       if (first) {
         prevValue = record.getValues().get(1).getInt();
-        assertTrue(record.getValues().get(1).getInt() > 10);
+        assertTrue(record.getValues().get(1).getInt() > 400);
         assertEquals(2, record.getValues().size());
         first = false;
       } else if (record == markerRecord) {
         first = true;
       } else {
         assertEquals(prevValue, record.getValues().get(1).getInt());
-        assertTrue(record.getValues().get(1).getInt() > 10);
+        assertTrue(record.getValues().get(1).getInt() > 400);
         assertEquals(2, record.getValues().size());
       }
     }
@@ -334,7 +334,7 @@ public class OptimalQueryPlanJoinsTest {
                   "\t\t\ttype: WHERE\n" +
                   "\t\t\tcolumn: t2.int\n" +
                   "\t\t\tpredicate: GREATER_THAN\n" +
-                  "\t\t\tvalue: 10\n" +
+                  "\t\t\tvalue: 400\n" +
                   "\t\t\t\ttype: SEQSCAN\n" +
                   "\t\t\t\ttable: t2\n" +
                   "\t\t\n" +
@@ -426,7 +426,19 @@ public class OptimalQueryPlanJoinsTest {
                   "\t\t(right)\n" +
                   "\t\ttype: SEQSCAN\n" +
                   "\t\ttable: t1";
-    assertEquals(tree, finalOperator.toString());
+    String tree2 = "type: SELECT\n" +
+                   "columns: [t1.int, t2.int]\n" +
+                   "\ttype: BNLJ\n" +
+                   "\tleftColumn: t1.int\n" +
+                   "\trightColumn: t2.int\n" +
+                   "\t\t(left)\n" +
+                   "\t\ttype: SEQSCAN\n" +
+                   "\t\ttable: t1\n" +
+                   "\t\n" +
+                   "\t\t(right)\n" +
+                   "\t\ttype: SEQSCAN\n" +
+                   "\t\ttable: t2";
+    assertTrue(finalOperator.toString().equals(tree) || finalOperator.toString().equals(tree2));
 
     transaction.end();
   }

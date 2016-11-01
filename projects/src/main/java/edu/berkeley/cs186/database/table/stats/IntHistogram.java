@@ -160,9 +160,9 @@ public class IntHistogram implements Histogram<Integer>{
 
   /**
    * Adds an entry into this IntHistogram.
+   * Buckets are start inclusive and end exclusive.
    */
   public void addValue(Integer value) {
-    // Buckets are start inclusive and end exclusive.
     if (value >= this.rangeMax || value < this.rangeMin) {
       this.refactorBuckets(value);
     }
@@ -188,9 +188,11 @@ public class IntHistogram implements Histogram<Integer>{
   }
 
   /**
-   * Computes the reduction factor a predicate and value results in
-   * over this IntHistgram. You'll find instance methods of this class
-   * helpful - note that many are estimates and not exact.
+   * Computes the reduction factor that a predicate and value result in
+   * over this IntHistogram. You'll find instance methods of this class
+   * helpful - note that many are estimates and not exact. For the range
+   * of values calculation, please use (max - min) as opposed to
+   * (max - min + 1) - the buckets backing this histogram are end exclusive.
    *
    * @param predicate the predicate to compute reduction factor for
    * @param value the value to compare against
@@ -263,7 +265,7 @@ public class IntHistogram implements Histogram<Integer>{
 
   /**
    * Gets the estimate maximum value of this. The estimate maximum
-   * value is the start value of the rightmost bucket with some entries.
+   * value is the end value of the rightmost bucket with some entries.
    *
    * @return estimate maximum value
    */
